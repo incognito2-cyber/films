@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TextCrypt</title>
+<meta name="theme-color" content="#121212" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icon.png" />
+<style>
+  body {
+    margin: 0; padding: 20px;
+    font-family: sans-serif;
+    background-color: #121212;
+    color: #eee;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  textarea, input[type=text] {
+    width: 100%; max-width: 600px;
+    padding: 10px;
+    margin: 8px 0;
+    border-radius: 6px;
+    border: none;
+    background: #222;
+    color: #eee;
+    font-size: 1rem;
+    resize: vertical;
+  }
+  button {
+    background: #444;
+    border: none;
+    color: white;
+    padding: 12px 20px;
+    margin: 6px 4px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+  }
+  button:hover {
+    background: #666;
+  }
+  .btn-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 600px;
+  }
+  #qr-container {
+    margin-top: 15px;
+  }
+  .theme-toggle {
+    margin-top: 10px;
+    cursor: pointer;
+    user-select: none;
+  }
+</style>
+</head>
+<body>
+
+<h1>TextCrypt 🔐</h1>
+
+<input id="password" type="text" placeholder="Введите пароль" autocomplete="on" />
+
+<textarea id="input" rows="4" placeholder="Введите текст"></textarea>
+
+<div class="btn-row">
+  <button onclick="encryptText()">🔒 Зашифровать</button>
+  <button onclick="decryptText()">🔓 Расшифровать</button>
+  <button onclick="clearAll()">🧹 Очистить</button>
+</div>
+
+<textarea id="output" rows="4" placeholder="Результат..." readonly></textarea>
+
+<div class="btn-row">
+  <button onclick="copyResult()">📋 Копировать результат</button>
+</div>
+
+<div id="qr-container"></div>
+
+<div class="theme-toggle" onclick="toggleTheme()" title="Переключить тему">🌗 Переключить тему</div>
+
+<script src="https://cdn.jsdelivr.net/npm/crypto-js@4.1.1/crypto-js.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
+<script>
+  // Тема
+  let dark = localStorage.getItem('theme') !== 'light';
+  applyTheme();
+  function toggleTheme() {
+    dark = !dark;
+    localStorage.setItem('theme', dark ? 'dark' : 'light');
+    applyTheme();
+  }
+  function applyTheme() {
+    if (dark) {
+      document.body.style.backgroundColor = '#121212';
+      document.body.style.color = '#eee';
+    } else {
+      document.body.style.backgroundColor = '#fff';
+      document.body.style.color = '#111';
+    }
+  }
+
+  // Шифрование
+  function encryptText() {
+    const text = document.getElementById("input").value;
+    const pass = document.getElementById("password").value;
+    if (!text || !pass) return alert("Введите текст и пароль!");
+
+    const encrypted = CryptoJS.AES.encrypt(text, pass);
+    document.getElementById("output").value = encrypted.toString();
+    generateQR();
+  }
+
+  // Дешифровка
+  function decryptText() {
+    const encryptedText = document.getElementById("output").value;
+    const pass = document.getElementById("password").value;
+    if (!encryptedText || !pass) return alert("Введите зашифрованный текст и пароль!");
+
+    try {
+      const decrypted = CryptoJS.AES.decrypt(encryptedText, pass);
+      const result = decrypted.toString(CryptoJS.enc.Utf8);
+      if (!result) throw new Error();
+
+      document.getElementById("input").value = result;
+    } catch {
+      alert("Неверный пароль или повреждённый текст");
+    }
+  }
+
+  // Очистка
+  function clearAll() {
+    document.getElementById("input").value = "";
+    document.getElementById("output").value = "";
+  }
+
+  // Копирование
+  function copyResult() {
+    const out = document.getElementById("output");
+    if (!out.value) return alert("Нет текста для копирования");
+    navigator.clipboard.writeText(out.value).then(() => alert("Скопировано!"));
+  }
+
+  // Генерация QR-кода
+  function generateQR() {
+    const text = document.getElementById("output").value;
+    if (!text) return alert("Сначала зашифруйте текст");
+    const container = document.getElementById("qr-container");
+    container.innerHTML = "";
+    QRCode.toCanvas(text, { width: 200 }, (err, canvas) => {
+      if (err) console.error(err);
+      else container.appendChild(canvas);
+    });
+  }
+</script>
+
+</body>
+</html>
