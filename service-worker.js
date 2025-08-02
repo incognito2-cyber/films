@@ -1,22 +1,23 @@
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open('textcrypt-cache').then(cache => {
+self.addEventListener("install", e => {
+  e.waitUntil(
+    caches.open("textcrypt-cache").then(cache => {
       return cache.addAll([
-        './',
-        './index.html',
-        './manifest.json',
-        'https://cdn.jsdelivr.net/npm/crypto-js@4.1.1/crypto-js.min.js',
-        'https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js'
+        "./",
+        "index.html",
+        "manifest.json",
+        "icon.png",
+        "https://cdn.jsdelivr.net/npm/crypto-js@4.1.1/crypto-js.min.js",
+        "https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js",
+        "https://unpkg.com/html5-qrcode"
       ]);
     })
   );
-  self.skipWaiting();
 });
 
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request).then(response => {
-      return response || fetch(event.request);
+self.addEventListener("fetch", e => {
+  e.respondWith(
+    caches.match(e.request).then(response => {
+      return response || fetch(e.request);
     })
   );
 });
