@@ -1,89 +1,248 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TextCrypt</title>
-  <meta name="theme-color" content="#121212" />
-  <link rel="manifest" href="manifest.json" />
-  <link rel="icon" href="icon.png" />
-  <script>
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("service-worker.js");
-    }
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.1.1/crypto-js.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
-  <style>
-    body {
-      background: #121212;
-      color: white;
-      font-family: sans-serif;
-      padding: 20px;
-    }
-    textarea, input {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 10px;
-      border: none;
-      border-radius: 6px;
-    }
-    button {
-      padding: 10px 15px;
-      margin-right: 5px;
-      margin-top: 5px;
-      background: #333;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #555;
-    }
-    #qr-container {
-      margin-top: 10px;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TextCrypt</title>
+<meta name="theme-color" content="#121212" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icon.png" />
+<style>
+  body {
+    margin: 0; padding: 20px;
+    font-family: sans-serif;
+    background-color: #121212;
+    color: #eee;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  textarea, input[type=text], input[type=file] {
+    width: 100%; max-width: 600px;
+    padding: 10px;
+    margin: 8px 0;
+    border-radius: 6px;
+    border: none;
+    background: #222;
+    color: #eee;
+    font-size: 1rem;
+    resize: vertical;
+  }
+  button {
+    background: #444;
+    border: none;
+    color: white;
+    padding: 12px 20px;
+    margin: 6px 4px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+  }
+  button:hover {
+    background: #666;
+  }
+  .btn-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 600px;
+  }
+  #qr-container, #qr-reader {
+    margin-top: 15px;
+  }
+  #qr-reader {
+    width: 300px;
+    display: none;
+  }
+  .theme-toggle {
+    margin-top: 10px;
+    cursor: pointer;
+    user-select: none;
+  }
+</style>
 </head>
 <body>
-  <h2 style="text-align:center">TextCrypt</h2>
 
-  <input id="password" placeholder="Пароль" type="text" autocomplete="on" />
-  <textarea id="input" placeholder="Введите текст..."></textarea>
+<h1>TextCrypt 🔐</h1>
 
-  <div>
-    <button onclick="encryptText()">🔐 Зашифровать</button>
-    <button onclick="decryptText()">🔓 Расшифровать</button>
-    <button onclick="generateQR()">📷 QR-код</button>
-  </div>
+<input id="password" type="text" placeholder="Введите пароль" autocomplete="on" />
 
-  <textarea id="output" placeholder="Результат..."></textarea>
-  <button onclick="copyResult()">📋 Копировать</button>
+<textarea id="input" rows="4" placeholder="Введите текст"></textarea>
 
-  <div id="qr-container" style="display:none;"></div>
+<div class="btn-row">
+  <button onclick="encryptText()">🔒 Зашифровать</button>
+  <button onclick="decryptText()">🔓 Расшифровать</button>
+  <button onclick="clearAll()">🧹 Очистить</button>
+</div>
 
-  <script>
-    function encryptText() {
-      const text = document.getElementById("input").value;
-      const pass = document.getElementById("password").value;
-      if (!text || !pass) return alert("Введите текст и пароль!");
+<textarea id="output" rows="4" placeholder="Результат..." readonly></textarea>
+
+<div class="btn-row">
+  <button onclick="copyResult()">📋 Копировать результат</button>
+  <button onclick="generateQR()">📷 Создать QR-код</button>
+  <button onclick="scanQR()">📸 Сканировать QR</button>
+</div>
+
+<div id="qr-container"></div>
+<div id="qr-reader"></div>
+
+<div class="btn-row" style="margin-top: 20px;">
+  <input id="fileInput" type="file" accept=".txt" />
+  <button onclick="encryptFile()">🔒 Зашифровать файл</button>
+  <button onclick="decryptFile()">🔓 Расшифровать файл</button>
+</div>
+
+<div class="theme-toggle" onclick="toggleTheme()" title="Переключить тему">🌗 Переключить тему</div>
+
+<script src="https://cdn.jsdelivr.net/npm/crypto-js@4.1.1/crypto-js.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<script>
+  // Тема
+  let dark = localStorage.getItem('theme') !== 'light';
+  applyTheme();
+  function toggleTheme() {
+    dark = !dark;
+    localStorage.setItem('theme', dark ? 'dark' : 'light');
+    applyTheme();
+  }
+  function applyTheme() {
+    if (dark) {
+      document.body.style.backgroundColor = '#121212';
+      document.body.style.color = '#eee';
+    } else {
+      document.body.style.backgroundColor = '#fff';
+      document.body.style.color = '#111';
+    }
+  }
+
+  // Шифрование текста
+  function encryptText() {
+    const text = document.getElementById("input").value;
+    const pass = document.getElementById("password").value;
+    if (!text || !pass) return alert("Введите текст и пароль");
+    const salt = CryptoJS.enc.Hex.parse("a1b2c3d4e5f6");
+    const key = CryptoJS.PBKDF2(pass, salt, { keySize: 32 / 4, iterations: 1000 });
+    const iv = CryptoJS.lib.WordArray.random(12);
+    const encrypted = CryptoJS.AES.encrypt(text, key, {
+      iv: iv,
+      mode: CryptoJS.mode.GCM,
+      format: CryptoJS.format.OpenSSL
+    });
+    const result = iv.toString() + encrypted.toString();
+    document.getElementById("output").value = result;
+    generateQR();
+  }
+
+  // Дешифровка текста
+  function decryptText() {
+    const data = document.getElementById("output").value;
+    const pass = document.getElementById("password").value;
+    if (!data || !pass) return alert("Введите зашифрованный текст и пароль");
+    try {
+      const salt = CryptoJS.enc.Hex.parse("a1b2c3d4e5f6");
+      const key = CryptoJS.PBKDF2(pass, salt, { keySize: 32 / 4, iterations: 1000 });
+      const iv = CryptoJS.enc.Hex.parse(data.slice(0, 24));
+      const encrypted = data.slice(24);
+      const decrypted = CryptoJS.AES.decrypt(encrypted, key, {
+        iv: iv,
+        mode: CryptoJS.mode.GCM,
+        format: CryptoJS.format.OpenSSL
+      });
+      const decoded = decrypted.toString(CryptoJS.enc.Utf8);
+      if (!decoded) throw new Error();
+      document.getElementById("input").value = decoded;
+    } catch {
+      alert("Неверный пароль или повреждённый текст");
+    }
+  }
+
+  // Очистить всё
+  function clearAll() {
+    document.getElementById("input").value = "";
+    document.getElementById("output").value = "";
+  }
+
+  // Копировать результат
+  function copyResult() {
+    const out = document.getElementById("output");
+    if (!out.value) return alert("Нет текста для копирования");
+    navigator.clipboard.writeText(out.value).then(() => {
+      alert("Скопировано!");
+    });
+  }
+
+  // Генерация QR
+  function generateQR() {
+    const text = document.getElementById("output").value;
+    if (!text) return alert("Сначала зашифруйте текст");
+    const container = document.getElementById("qr-container");
+    container.innerHTML = "";
+    QRCode.toCanvas(text, { width: 200 }, (err, canvas) => {
+      if (err) console.error(err);
+      container.appendChild(canvas);
+    });
+  }
+
+  // Сканирование QR
+  function scanQR() {
+    const qrReader = document.getElementById("qr-reader");
+    qrReader.style.display = "block";
+
+    const html5QrCode = new Html5Qrcode("qr-reader");
+    Html5Qrcode.getCameras().then(devices => {
+      if (devices && devices.length) {
+        const cameraId = devices[0].id;
+        html5QrCode.start(
+          cameraId,
+          { fps: 10, qrbox: 250 },
+          qrMessage => {
+            document.getElementById("output").value = qrMessage;
+            qrReader.style.display = "none";
+            html5QrCode.stop();
+            alert("QR-код успешно считан");
+          },
+          err => {}
+        );
+      }
+    }).catch(err => alert("Ошибка доступа к камере: " + err));
+  }
+
+  // Шифрование файла
+  function encryptFile() {
+    const fileInput = document.getElementById("fileInput");
+    const pass = document.getElementById("password").value;
+    if (!fileInput.files.length) return alert("Выберите файл");
+    if (!pass) return alert("Введите пароль");
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+    reader.onload = e => {
+      const content = e.target.result;
       const salt = CryptoJS.enc.Hex.parse("a1b2c3d4e5f6");
       const key = CryptoJS.PBKDF2(pass, salt, { keySize: 32 / 4, iterations: 1000 });
       const iv = CryptoJS.lib.WordArray.random(12);
-      const encrypted = CryptoJS.AES.encrypt(text, key, {
+      const encrypted = CryptoJS.AES.encrypt(content, key, {
         iv: iv,
         mode: CryptoJS.mode.GCM,
         format: CryptoJS.format.OpenSSL
       });
       const result = iv.toString() + encrypted.toString();
-      document.getElementById("output").value = result;
-    }
+      downloadFile("encrypted.txt", result);
+    };
+    reader.readAsText(file);
+  }
 
-    function decryptText() {
-      const data = document.getElementById("output").value;
-      const pass = document.getElementById("password").value;
-      if (!data || !pass) return alert("Введите зашифрованный текст и пароль!");
+  // Дешифровка файла
+  function decryptFile() {
+    const fileInput = document.getElementById("fileInput");
+    const pass = document.getElementById("password").value;
+    if (!fileInput.files.length) return alert("Выберите файл");
+    if (!pass) return alert("Введите пароль");
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+    reader.onload = e => {
+      const data = e.target.result;
       try {
         const salt = CryptoJS.enc.Hex.parse("a1b2c3d4e5f6");
         const key = CryptoJS.PBKDF2(pass, salt, { keySize: 32 / 4, iterations: 1000 });
@@ -94,30 +253,31 @@
           mode: CryptoJS.mode.GCM,
           format: CryptoJS.format.OpenSSL
         });
-        document.getElementById("input").value = decrypted.toString(CryptoJS.enc.Utf8);
-      } catch (e) {
-        alert("Ошибка расшифровки. Проверь пароль или текст.");
+        const decoded = decrypted.toString(CryptoJS.enc.Utf8);
+        if (!decoded) throw new Error();
+        downloadFile("decrypted.txt", decoded);
+      } catch {
+        alert("Неверный пароль или повреждённый файл");
       }
-    }
+    };
+    reader.readAsText(file);
+  }
 
-    function copyResult() {
-      const out = document.getElementById("output");
-      out.select();
-      document.execCommand("copy");
-      alert("Скопировано!");
-    }
+  // Скачивание файла
+  function downloadFile(filename, content) {
+    const a = document.createElement("a");
+    const blob = new Blob([content], { type: "text/plain" });
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
 
-    function generateQR() {
-      const text = document.getElementById("output").value;
-      if (!text) return alert("Сначала зашифруй текст.");
-      const container = document.getElementById("qr-container");
-      container.innerHTML = "";
-      QRCode.toCanvas(text, { width: 200 }, function (err, canvas) {
-        if (err) console.error(err);
-        container.appendChild(canvas);
-        container.style.display = "block";
-      });
-    }
-  </script>
+  // Регистрация service worker
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("service-worker.js");
+  }
+</script>
+
 </body>
 </html>
