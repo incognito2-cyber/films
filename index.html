@@ -104,73 +104,48 @@
     }
   }
 
-  // Шифрование текста
+  // Шифрование
   function encryptText() {
     const text = document.getElementById("input").value;
     const pass = document.getElementById("password").value;
     if (!text || !pass) return alert("Введите текст и пароль!");
 
-    const salt = CryptoJS.enc.Hex.parse("a1b2c3d4e5f6");
-    const key = CryptoJS.PBKDF2(pass, salt, { keySize: 256/32, iterations: 1000 });
-
-    const iv = CryptoJS.lib.WordArray.random(16);
-
-    const encrypted = CryptoJS.AES.encrypt(text, key, {
-      iv: iv,
-      mode: CryptoJS.mode.CBC,
-      padding: CryptoJS.pad.Pkcs7
-    });
-
-    const result = iv.toString() + encrypted.toString();
-
-    document.getElementById("output").value = result;
+    const encrypted = CryptoJS.AES.encrypt(text, pass);
+    document.getElementById("output").value = encrypted.toString();
     generateQR();
   }
 
-  // Дешифровка текста
+  // Дешифровка
   function decryptText() {
-    const data = document.getElementById("output").value;
+    const encryptedText = document.getElementById("output").value;
     const pass = document.getElementById("password").value;
-    if (!data || !pass) return alert("Введите зашифрованный текст и пароль!");
+    if (!encryptedText || !pass) return alert("Введите зашифрованный текст и пароль!");
 
     try {
-      const salt = CryptoJS.enc.Hex.parse("a1b2c3d4e5f6");
-      const key = CryptoJS.PBKDF2(pass, salt, { keySize: 256/32, iterations: 1000 });
+      const decrypted = CryptoJS.AES.decrypt(encryptedText, pass);
+      const result = decrypted.toString(CryptoJS.enc.Utf8);
+      if (!result) throw new Error();
 
-      const iv = CryptoJS.enc.Hex.parse(data.slice(0, 32)); // 16 байт = 32 hex символа
-      const encrypted = data.slice(32);
-
-      const decrypted = CryptoJS.AES.decrypt(encrypted, key, {
-        iv: iv,
-        mode: CryptoJS.mode.CBC,
-        padding: CryptoJS.pad.Pkcs7
-      });
-
-      const decoded = decrypted.toString(CryptoJS.enc.Utf8);
-      if (!decoded) throw new Error();
-
-      document.getElementById("input").value = decoded;
+      document.getElementById("input").value = result;
     } catch {
       alert("Неверный пароль или повреждённый текст");
     }
   }
 
-  // Очистить всё
+  // Очистка
   function clearAll() {
     document.getElementById("input").value = "";
     document.getElementById("output").value = "";
   }
 
-  // Копировать результат
+  // Копирование
   function copyResult() {
     const out = document.getElementById("output");
     if (!out.value) return alert("Нет текста для копирования");
-    navigator.clipboard.writeText(out.value).then(() => {
-      alert("Скопировано!");
-    });
+    navigator.clipboard.writeText(out.value).then(() => alert("Скопировано!"));
   }
 
-  // Генерация QR
+  // Генерация QR-кода
   function generateQR() {
     const text = document.getElementById("output").value;
     if (!text) return alert("Сначала зашифруйте текст");
@@ -178,7 +153,7 @@
     container.innerHTML = "";
     QRCode.toCanvas(text, { width: 200 }, (err, canvas) => {
       if (err) console.error(err);
-      container.appendChild(canvas);
+      else container.appendChild(canvas);
     });
   }
 </script>
