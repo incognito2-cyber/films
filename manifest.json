@@ -1,10 +1,11 @@
 {
   "name": "TextCrypt",
   "short_name": "TextCrypt",
-  "start_url": "./index.html",
+  "start_url": "index.html",
   "display": "standalone",
   "background_color": "#121212",
   "theme_color": "#121212",
+  "description": "AES-256 шифрование и дешифрование текста",
   "icons": [
     {
       "src": "icon.png",
