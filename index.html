@@ -14,37 +14,62 @@
   </script>
   <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.1.1/crypto-js.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <style>
+    body {
+      background: #121212;
+      color: white;
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    textarea, input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: none;
+      border-radius: 6px;
+    }
+    button {
+      padding: 10px 15px;
+      margin-right: 5px;
+      margin-top: 5px;
+      background: #333;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #555;
+    }
+    #qr-container {
+      margin-top: 10px;
+    }
+  </style>
 </head>
-<body style="background:#121212; color:white; font-family:sans-serif; padding:20px">
+<body>
   <h2 style="text-align:center">TextCrypt</h2>
 
-  <input id="password" placeholder="Пароль" type="text" style="width:100%; padding:10px; margin-bottom:10px" autocomplete="on" />
-  <textarea id="input" placeholder="Введите текст..." style="width:100%; height:100px; padding:10px"></textarea>
+  <input id="password" placeholder="Пароль" type="text" autocomplete="on" />
+  <textarea id="input" placeholder="Введите текст..."></textarea>
 
-  <div style="margin:10px 0">
+  <div>
     <button onclick="encryptText()">🔐 Зашифровать</button>
     <button onclick="decryptText()">🔓 Расшифровать</button>
     <button onclick="generateQR()">📷 QR-код</button>
   </div>
 
-  <textarea id="output" placeholder="Результат..." style="width:100%; height:100px; padding:10px"></textarea>
+  <textarea id="output" placeholder="Результат..."></textarea>
   <button onclick="copyResult()">📋 Копировать</button>
 
-  <div id="qr-container" style="display:none; margin-top:10px"></div>
+  <div id="qr-container" style="display:none;"></div>
 
   <script>
-    function getKey(pass) {
-      return CryptoJS.PBKDF2(pass, CryptoJS.lib.WordArray.random(16), {
-        keySize: 256 / 32,
-        iterations: 1000
-      });
-    }
-
     function encryptText() {
       const text = document.getElementById("input").value;
       const pass = document.getElementById("password").value;
       if (!text || !pass) return alert("Введите текст и пароль!");
-      const key = CryptoJS.PBKDF2(pass, "salt", { keySize: 32 / 4, iterations: 1000 });
+      const salt = CryptoJS.enc.Hex.parse("a1b2c3d4e5f6");
+      const key = CryptoJS.PBKDF2(pass, salt, { keySize: 32 / 4, iterations: 1000 });
       const iv = CryptoJS.lib.WordArray.random(12);
       const encrypted = CryptoJS.AES.encrypt(text, key, {
         iv: iv,
@@ -59,15 +84,20 @@
       const data = document.getElementById("output").value;
       const pass = document.getElementById("password").value;
       if (!data || !pass) return alert("Введите зашифрованный текст и пароль!");
-      const key = CryptoJS.PBKDF2(pass, "salt", { keySize: 32 / 4, iterations: 1000 });
-      const iv = CryptoJS.enc.Hex.parse(data.slice(0, 24));
-      const encrypted = data.slice(24);
-      const decrypted = CryptoJS.AES.decrypt(encrypted, key, {
-        iv: iv,
-        mode: CryptoJS.mode.GCM,
-        format: CryptoJS.format.OpenSSL
-      });
-      document.getElementById("input").value = decrypted.toString(CryptoJS.enc.Utf8);
+      try {
+        const salt = CryptoJS.enc.Hex.parse("a1b2c3d4e5f6");
+        const key = CryptoJS.PBKDF2(pass, salt, { keySize: 32 / 4, iterations: 1000 });
+        const iv = CryptoJS.enc.Hex.parse(data.slice(0, 24));
+        const encrypted = data.slice(24);
+        const decrypted = CryptoJS.AES.decrypt(encrypted, key, {
+          iv: iv,
+          mode: CryptoJS.mode.GCM,
+          format: CryptoJS.format.OpenSSL
+        });
+        document.getElementById("input").value = decrypted.toString(CryptoJS.enc.Utf8);
+      } catch (e) {
+        alert("Ошибка расшифровки. Проверь пароль или текст.");
+      }
     }
 
     function copyResult() {
