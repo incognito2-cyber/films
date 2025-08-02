@@ -5,7 +5,7 @@
   "display": "standalone",
   "background_color": "#121212",
   "theme_color": "#121212",
-  "description": "AES-шифрование текста",
+  "description": "AES-256 шифрование и дешифрование текста",
   "icons": [
     {
       "src": "icon.png",
