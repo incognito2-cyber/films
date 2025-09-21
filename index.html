@@ -3,32 +3,176 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Мой список фильмов</title>
+<title>Мой список фильмов (Реальное время)</title>
+
 <style>
-  body {font-family: Arial, sans-serif; background: #1e1e2f; color: #fff; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; margin: 0; padding: 20px;}
-  .container { width: 100%; max-width: 500px; background: #2c2c3e; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
-  h1 { text-align: center; margin-bottom: 20px; }
-  .tabs, .sort-buttons { display: flex; justify-content: space-around; margin-bottom: 15px; }
-  .tab-btn, .sort-btn { flex: 1; padding: 10px; border: none; background: #444; color: #fff; cursor: pointer; font-size: 14px; border-radius: 8px; margin: 0 5px; }
-  .tab-btn.active, .sort-btn.active { background: #4CAF50; }
-  .input-area, .search-area { display: flex; margin-bottom: 15px; }
-  input[type="text"] { flex: 1; padding: 10px; border: none; border-radius: 8px 0 0 8px; outline: none; font-size: 16px; }
-  button { padding: 10px 15px; border: none; background: #4CAF50; color: #fff; cursor: pointer; font-size: 16px; border-radius: 0 8px 8px 0; }
-  button:hover { background: #45a049; }
-  .search-area input { border-radius: 8px; }
-  .clear-btn { width: 100%; margin-bottom: 15px; padding: 10px; border-radius: 8px; background: #e74c3c; font-size: 16px; cursor: pointer; }
-  .clear-btn:hover { background: #c0392b; }
-  ul { list-style: none; padding: 0; }
-  li { background: #3a3a4f; margin-bottom: 10px; padding: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; cursor: grab; }
-  li.dragging { opacity: 0.5; }
-  .watched { text-decoration: line-through; color: #aaa; }
-  .actions { display: flex; gap: 8px; }
-  .delete-btn { background: #e74c3c; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
-  .delete-btn:hover { background: #c0392b; }
-  .toggle-btn { background: #3498db; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
-  .toggle-btn:hover { background: #2980b9; }
+body {font-family: Arial, sans-serif; background: #1e1e2f; color: #fff; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; margin: 0; padding: 20px;}
+.container { width: 100%; max-width: 500px; background: #2c2c3e; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+h1 { text-align: center; margin-bottom: 20px; }
+.tabs, .sort-buttons { display: flex; justify-content: space-around; margin-bottom: 15px; }
+.tab-btn, .sort-btn { flex: 1; padding: 10px; border: none; background: #444; color: #fff; cursor: pointer; font-size: 14px; border-radius: 8px; margin: 0 5px; }
+.tab-btn.active, .sort-btn.active { background: #4CAF50; }
+.input-area, .search-area { display: flex; margin-bottom: 15px; }
+input[type="text"] { flex: 1; padding: 10px; border: none; border-radius: 8px 0 0 8px; outline: none; font-size: 16px; }
+button { padding: 10px 15px; border: none; background: #4CAF50; color: #fff; cursor: pointer; font-size: 16px; border-radius: 0 8px 8px 0; }
+button:hover { background: #45a049; }
+.search-area input { border-radius: 8px; }
+.clear-btn { width: 100%; margin-bottom: 15px; padding: 10px; border-radius: 8px; background: #e74c3c; font-size: 16px; cursor: pointer; }
+.clear-btn:hover { background: #c0392b; }
+ul { list-style: none; padding: 0; }
+li { background: #3a3a4f; margin-bottom: 10px; padding: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; cursor: grab; }
+li.dragging { opacity: 0.5; }
+.watched { text-decoration: line-through; color: #aaa; }
+.actions { display: flex; gap: 8px; }
+.delete-btn { background: #e74c3c; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+.delete-btn:hover { background: #c0392b; }
+.toggle-btn { background: #3498db; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+.toggle-btn:hover { background: #2980b9; }
 </style>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+import { getDatabase, ref, push, set, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-database.js";
+
+// ==== Настройка Firebase ====
+const firebaseConfig = {
+  apiKey: "AIzaSyATnoQckKDlyN1__lY0VEATcBuh-cKmfnA",
+  authDomain: "films-c5dc3.firebaseapp.com",
+  databaseURL: "https://films-c5dc3-default-rtdb.firebaseio.com",
+  projectId: "films-c5dc3",
+  storageBucket: "films-c5dc3.firebasestorage.app",
+  messagingSenderId: "885080184305",
+  appId: "1:885080184305:web:04ce53f3830c25cf572050"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const moviesRef = ref(db, 'movies');
+
+// ==== Элементы страницы ====
+const movieInput = document.getElementById("movieInput");
+const movieList = document.getElementById("movieList");
+const searchInput = document.getElementById("searchInput");
+const tabButtons = document.querySelectorAll(".tab-btn");
+const sortButtons = document.querySelectorAll(".sort-btn");
+
+let movies = [];
+let currentFilter = "all";
+
+// ==== Рендер фильмов ====
+function renderMovies() {
+  const search = searchInput.value.toLowerCase();
+  movieList.innerHTML = "";
+  const filtered = movies.filter(movie => {
+    if(currentFilter==="watched") return movie.watched;
+    if(currentFilter==="unwatched") return !movie.watched;
+    return true;
+  }).filter(movie => movie.name.toLowerCase().includes(search));
+
+  filtered.forEach(movie=>{
+    const li=document.createElement("li");
+    li.draggable=true;
+    li.dataset.id = movie.id;
+    li.className = movie.watched ? "watched" : "";
+    li.title = movie.date;
+    li.innerHTML=`
+      <span>${movie.name}</span>
+      <div class="actions">
+        <button class="toggle-btn" onclick="toggleWatchedFirebase('${movie.id}', ${movie.watched})">
+          ${movie.watched ? "Сбросить" : "✔"}
+        </button>
+        <button class="delete-btn" onclick="deleteMovieFirebase('${movie.id}')">🗑</button>
+      </div>
+    `;
+    li.addEventListener("dragstart",()=>li.classList.add("dragging"));
+    li.addEventListener("dragend",()=>{ li.classList.remove("dragging"); updateOrder(); });
+    movieList.appendChild(li);
+  });
+}
+
+// ==== Функции действий ====
+window.addMovie = function() {
+  const name = movieInput.value.trim();
+  if (!name) return;
+  const newMovieRef = push(moviesRef);
+  set(newMovieRef, { name, watched: false, date: new Date().toISOString() });
+  movieInput.value = "";
+}
+
+window.deleteMovieFirebase = function(id) {
+  remove(ref(db, 'movies/' + id));
+}
+
+window.toggleWatchedFirebase = function(id, watched) {
+  update(ref(db, 'movies/' + id), { watched: !watched });
+}
+
+window.clearAll = function() {
+  if(confirm("Ты точно хочешь удалить весь список фильмов?")) {
+    remove(moviesRef);
+  }
+}
+
+window.setFilter = function(filter) {
+  currentFilter = filter;
+  tabButtons.forEach(btn => btn.classList.remove("active"));
+  document.querySelector(`.tab-btn[onclick="setFilter('${filter}')"]`).classList.add("active");
+  renderMovies();
+}
+
+window.sortAlphabet = function(button){
+  sortButtons.forEach(btn=>btn.classList.remove("active"));
+  button.classList.add("active");
+  movies.sort((a,b)=>a.name.localeCompare(b.name));
+  renderMovies();
+}
+
+window.sortByDate = function(button){
+  sortButtons.forEach(btn=>btn.classList.remove("active"));
+  button.classList.add("active");
+  movies.sort((a,b)=>new Date(b.date)-new Date(a.date));
+  renderMovies();
+}
+
+// ==== Drag & Drop ====
+movieList.addEventListener("dragover", e=>{
+  e.preventDefault();
+  const dragging = document.querySelector(".dragging");
+  const afterElement = getDragAfterElement(movieList,e.clientY);
+  if(afterElement==null) movieList.appendChild(dragging); 
+  else movieList.insertBefore(dragging,afterElement);
+});
+
+function getDragAfterElement(container,y){
+  const elements=[...container.querySelectorAll("li:not(.dragging)")];
+  return elements.reduce((closest,child)=>{
+    const box=child.getBoundingClientRect();
+    const offset=y-box.top-box.height/2;
+    if(offset<0 && offset>closest.offset) return {offset,element:child};
+    else return closest;
+  },{offset:Number.NEGATIVE_INFINITY}).element;
+}
+
+function updateOrder(){
+  const visible=Array.from(movieList.children).map(li=>movies.find(m=>m.id===li.dataset.id));
+  visible.forEach((movie,index)=>update(ref(db, 'movies/' + movie.id), { order: index }));
+}
+
+// ==== Подписка на изменения Firebase ====
+onValue(moviesRef, (snapshot) => {
+  movies = [];
+  snapshot.forEach(child => {
+    movies.push({ id: child.key, ...child.val() });
+  });
+  movies.sort((a,b)=> (a.order||0)-(b.order||0));
+  renderMovies();
+});
+
+setFilter('all');
+</script>
 </head>
+
 <body>
 <div class="container">
 <h1>🎬 Мой список фильмов</h1>
@@ -57,100 +201,5 @@
 
 <ul id="movieList"></ul>
 </div>
-
-<script type="module">
-// 🔹 Firebase как в Alt/Üst hefte
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyATnoQckKDlyN1__lY0VEATcBuh-cKmfnA",
-  authDomain: "films-c5dc3.firebaseapp.com",
-  databaseURL: "https://films-c5dc3-default-rtdb.firebaseio.com",
-  projectId: "films-c5dc3",
-  storageBucket: "films-c5dc3.appspot.com",
-  messagingSenderId: "885080184305",
-  appId: "1:885080184305:web:04ce53f3830c25cf572050"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-const moviesRef = ref(db, 'movies');
-
-const movieInput = document.getElementById("movieInput");
-const movieList = document.getElementById("movieList");
-const searchInput = document.getElementById("searchInput");
-const tabButtons = document.querySelectorAll(".tab-btn");
-const sortButtons = document.querySelectorAll(".sort-btn");
-
-let movies = [];
-let currentFilter = "all";
-
-// 🔹 Загрузка из Firebase
-onValue(moviesRef, (snapshot) => {
-  const data = snapshot.val();
-  if(data) movies = data;
-  renderMovies();
-});
-
-// 🔹 Сохранение в Firebase
-function saveMovies() { set(moviesRef, movies); }
-
-// 🔹 Остальной код твой без изменений
-function setFilter(filter) {
-  currentFilter = filter;
-  tabButtons.forEach(btn => btn.classList.remove("active"));
-  document.querySelector(`.tab-btn[onclick="setFilter('${filter}')"]`).classList.add("active");
-  renderMovies();
-}
-
-function addMovie() {
-  const name = movieInput.value.trim();
-  if(name) { movies.push({name, watched:false, date:new Date().toISOString()}); movieInput.value = ""; saveMovies(); renderMovies(); }
-}
-
-function toggleWatched(index) { movies[index].watched = !movies[index].watched; saveMovies(); renderMovies(); }
-function deleteMovie(index) { movies.splice(index,1); saveMovies(); renderMovies(); }
-function clearAll() { if(confirm("Ты точно хочешь удалить весь список фильмов?")) { movies = []; saveMovies(); renderMovies(); } }
-
-function renderMovies() {
-  const search = searchInput.value.toLowerCase();
-  movieList.innerHTML = "";
-  const filtered = movies.filter(movie => {
-    if(currentFilter==="watched") return movie.watched;
-    if(currentFilter==="unwatched") return !movie.watched;
-    return true;
-  }).filter(movie => movie.name.toLowerCase().includes(search));
-
-  filtered.forEach(movie=>{
-    const li=document.createElement("li");
-    li.draggable=true;
-    li.dataset.index=movies.indexOf(movie);
-    li.className = movie.watched ? "watched" : "";
-    li.title = movie.date;
-    li.innerHTML=`
-      <span>${movie.name}</span>
-      <div class="actions">
-        <button class="toggle-btn" onclick="toggleWatched(${movies.indexOf(movie)})">
-          ${movie.watched ? "Сбросить" : "✔"}
-        </button>
-        <button class="delete-btn" onclick="deleteMovie(${movies.indexOf(movie)})">🗑</button>
-      </div>
-    `;
-    li.addEventListener("dragstart",()=>li.classList.add("dragging"));
-    li.addEventListener("dragend",()=>{ li.classList.remove("dragging"); updateOrder(); });
-    movieList.appendChild(li);
-  });
-}
-
-movieList.addEventListener("dragover", e=>{ e.preventDefault(); const dragging = document.querySelector(".dragging"); const afterElement = getDragAfterElement(movieList,e.clientY); if(afterElement==null) movieList.appendChild(dragging); else movieList.insertBefore(dragging,afterElement); });
-function getDragAfterElement(container,y){ const elements=[...container.querySelectorAll("li:not(.dragging)")]; return elements.reduce((closest,child)=>{ const box=child.getBoundingClientRect(); const offset=y-box.top-box.height/2; if(offset<0 && offset>closest.offset) return {offset,element:child}; else return closest; },{offset:Number.NEGATIVE_INFINITY}).element; }
-function updateOrder(){ const visible=Array.from(movieList.children).map(li=>movies[li.dataset.index]); const hidden=movies.filter(m=>!visible.includes(m)); movies=[...visible,...hidden]; saveMovies(); renderMovies(); }
-function sortAlphabet(button){ sortButtons.forEach(btn=>btn.classList.remove("active")); button.classList.add("active"); const visible=movieList.querySelectorAll("li"); const sorted=Array.from(visible).sort((a,b)=>a.querySelector("span").textContent.localeCompare(b.querySelector("span").textContent)).map(li=>movies[li.dataset.index]); const hidden=movies.filter(m=>!sorted.includes(m)); movies=[...sorted,...hidden]; saveMovies(); renderMovies(); }
-function sortByDate(button){ sortButtons.forEach(btn=>btn.classList.remove("active")); button.classList.add("active"); const visible=movieList.querySelectorAll("li"); const sorted=Array.from(visible).sort((a,b)=>new Date(movies[b.dataset.index].date)-new Date(movies[a.dataset.index].date)).map(li=>movies[li.dataset.index]); const hidden=movies.filter(m=>!sorted.includes(m)); movies=[...sorted,...hidden]; saveMovies(); renderMovies(); }
-
-setFilter('all');
-renderMovies();
-</script>
 </body>
 </html>
