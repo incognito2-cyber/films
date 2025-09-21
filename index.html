@@ -59,11 +59,10 @@
 </div>
 
 <script type="module">
-// 🔹 Firebase подключение
+// 🔹 Firebase как в Alt/Üst hefte
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-// 🔑 Вставь сюда свой firebaseConfig
 const firebaseConfig = {
   apiKey: "AIzaSyATnoQckKDlyN1__lY0VEATcBuh-cKmfnA",
   authDomain: "films-c5dc3.firebaseapp.com",
@@ -76,31 +75,28 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-const moviesRef = ref(db, 'movies'); // путь в базе для списка фильмов
+const moviesRef = ref(db, 'movies');
 
-// 🔹 Твой существующий код без изменений
 const movieInput = document.getElementById("movieInput");
 const movieList = document.getElementById("movieList");
 const searchInput = document.getElementById("searchInput");
 const tabButtons = document.querySelectorAll(".tab-btn");
 const sortButtons = document.querySelectorAll(".sort-btn");
 
-let movies = []; // теперь будем загружать из Firebase
+let movies = [];
 let currentFilter = "all";
 
-// 🔹 Загрузка данных из Firebase
+// 🔹 Загрузка из Firebase
 onValue(moviesRef, (snapshot) => {
   const data = snapshot.val();
   if(data) movies = data;
   renderMovies();
 });
 
-// 🔹 Сохранение данных в Firebase
-function saveMovies() {
-  set(moviesRef, movies);
-}
+// 🔹 Сохранение в Firebase
+function saveMovies() { set(moviesRef, movies); }
 
-// Остальной код остаётся без изменений
+// 🔹 Остальной код твой без изменений
 function setFilter(filter) {
   currentFilter = filter;
   tabButtons.forEach(btn => btn.classList.remove("active"));
@@ -114,9 +110,7 @@ function addMovie() {
 }
 
 function toggleWatched(index) { movies[index].watched = !movies[index].watched; saveMovies(); renderMovies(); }
-
 function deleteMovie(index) { movies.splice(index,1); saveMovies(); renderMovies(); }
-
 function clearAll() { if(confirm("Ты точно хочешь удалить весь список фильмов?")) { movies = []; saveMovies(); renderMovies(); } }
 
 function renderMovies() {
@@ -149,14 +143,10 @@ function renderMovies() {
   });
 }
 
-// Drag & Drop
 movieList.addEventListener("dragover", e=>{ e.preventDefault(); const dragging = document.querySelector(".dragging"); const afterElement = getDragAfterElement(movieList,e.clientY); if(afterElement==null) movieList.appendChild(dragging); else movieList.insertBefore(dragging,afterElement); });
 function getDragAfterElement(container,y){ const elements=[...container.querySelectorAll("li:not(.dragging)")]; return elements.reduce((closest,child)=>{ const box=child.getBoundingClientRect(); const offset=y-box.top-box.height/2; if(offset<0 && offset>closest.offset) return {offset,element:child}; else return closest; },{offset:Number.NEGATIVE_INFINITY}).element; }
 function updateOrder(){ const visible=Array.from(movieList.children).map(li=>movies[li.dataset.index]); const hidden=movies.filter(m=>!visible.includes(m)); movies=[...visible,...hidden]; saveMovies(); renderMovies(); }
-
-// Сортировка
 function sortAlphabet(button){ sortButtons.forEach(btn=>btn.classList.remove("active")); button.classList.add("active"); const visible=movieList.querySelectorAll("li"); const sorted=Array.from(visible).sort((a,b)=>a.querySelector("span").textContent.localeCompare(b.querySelector("span").textContent)).map(li=>movies[li.dataset.index]); const hidden=movies.filter(m=>!sorted.includes(m)); movies=[...sorted,...hidden]; saveMovies(); renderMovies(); }
-
 function sortByDate(button){ sortButtons.forEach(btn=>btn.classList.remove("active")); button.classList.add("active"); const visible=movieList.querySelectorAll("li"); const sorted=Array.from(visible).sort((a,b)=>new Date(movies[b.dataset.index].date)-new Date(movies[a.dataset.index].date)).map(li=>movies[li.dataset.index]); const hidden=movies.filter(m=>!sorted.includes(m)); movies=[...sorted,...hidden]; saveMovies(); renderMovies(); }
 
 setFilter('all');
