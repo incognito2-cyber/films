@@ -4,9 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Мой список фильмов</title>
-<link rel="manifest" href="manifest.json">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
   body {font-family: Arial, sans-serif; background: #1e1e2f; color: #fff; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; margin: 0; padding: 20px;}
   .container { width: 100%; max-width: 500px; background: #2c2c3e; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
@@ -61,18 +58,49 @@
 <ul id="movieList"></ul>
 </div>
 
-<script>
+<script type="module">
+// 🔹 Firebase подключение
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+// 🔑 Вставь сюда свой firebaseConfig
+const firebaseConfig = {
+  apiKey: "AIzaSyATnoQckKDlyN1__lY0VEATcBuh-cKmfnA",
+  authDomain: "films-c5dc3.firebaseapp.com",
+  databaseURL: "https://films-c5dc3-default-rtdb.firebaseio.com",
+  projectId: "films-c5dc3",
+  storageBucket: "films-c5dc3.appspot.com",
+  messagingSenderId: "885080184305",
+  appId: "1:885080184305:web:04ce53f3830c25cf572050"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const moviesRef = ref(db, 'movies'); // путь в базе для списка фильмов
+
+// 🔹 Твой существующий код без изменений
 const movieInput = document.getElementById("movieInput");
 const movieList = document.getElementById("movieList");
 const searchInput = document.getElementById("searchInput");
 const tabButtons = document.querySelectorAll(".tab-btn");
 const sortButtons = document.querySelectorAll(".sort-btn");
 
-let movies = JSON.parse(localStorage.getItem("movies")) || [];
+let movies = []; // теперь будем загружать из Firebase
 let currentFilter = "all";
 
-function saveMovies() { localStorage.setItem("movies", JSON.stringify(movies)); }
+// 🔹 Загрузка данных из Firebase
+onValue(moviesRef, (snapshot) => {
+  const data = snapshot.val();
+  if(data) movies = data;
+  renderMovies();
+});
 
+// 🔹 Сохранение данных в Firebase
+function saveMovies() {
+  set(moviesRef, movies);
+}
+
+// Остальной код остаётся без изменений
 function setFilter(filter) {
   currentFilter = filter;
   tabButtons.forEach(btn => btn.classList.remove("active"));
